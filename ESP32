@@ -1,3 +1,11 @@
+/*
+Universidad Del Valle de Guatemala
+Facultad de Ingeniería
+Departamento de Electrónica, Mecatrónica y Biomédica
+Electrónica Digital 2
+Dayrin Rivas 22831
+*/
+
 #include <Arduino.h>
 #include <ESP32SPISlave.h>
 #include <Wire.h>
@@ -21,8 +29,6 @@ uint8_t spi_slave_rx_buf[BUFFER_SIZE];  // Buffer para recibir datos por SPI
 void onRequest();
 void onReceive (int len);
 
-uint8_t i=0;
-
 void setup() {
   Serial.begin(115200);
   pinMode(LED1, OUTPUT);
@@ -36,6 +42,8 @@ void setup() {
 
   memset(spi_slave_rx_buf, 0, BUFFER_SIZE);  // Inicializar el buffer
 
+  //Configuración I2C
+  Serial.setDebugOutput(true);
   Wire.onReceive(onReceive);
   Wire.onRequest(onRequest);
   Wire.begin(uint8_t)I2C_DEV_ADDR;
@@ -87,3 +95,24 @@ void encender_led(int numero, int tiempo) {
   delay(tiempo);  // Mantener el LED encendido durante el tiempo especificado
   digitalWrite(ledPin, LOW);  // Apagar el LED
 }
+
+// Función para cuando el maestro solicita datos
+void onRequest() {
+  unsigned int potValue = analogRead(POT);  // Leer el valor del potenciómetro
+  int voltaje = map(potValue, 0, 4095, 0, 400);
+  Wire.print(voltaje);  // Enviar el valor del potenciómetro al maestro
+
+  Serial.println("Valor del potenciómetro enviado al maestro: ");
+  Serial.println(voltaje);
+}
+
+void onReceive(int len) {
+
+  Serial.printf("onReceive[%d]:",len);
+  while(Wire.available()){
+    uint8_t incomingByte=Wire.read();
+    Serial.write(incomingByte);
+  }
+  Serial.println();
+}
+
