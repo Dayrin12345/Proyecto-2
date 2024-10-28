@@ -1,8 +1,12 @@
+
+/* USER CODE END Header */
+/* Includes ------------------------------------------------------------------*/
 #include "main.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
- #include <stdio.h>
+#include <stdio.h>
+#include "stm32f4xx_hal.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -12,7 +16,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
+#define deviceAdress 0x55
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -33,11 +37,12 @@ uint8_t txBuffer[3] = { 0 };  // Buffer para recibir el comando del usuario
 uint8_t txBuffer2[10] = { 0 };  // Buffer para recibir el comando del usuario
 uint8_t msg1[100] = "Seleccione 1. Controlar dispositivo SPI 2. Obtener medicion de Sensor I2C\n";
 uint8_t msg2[100] = "Ingrese no. de led a encender y tiempo, separados por una coma (Ej. 1,500)\n";
+uint8_t msg3[100] = "Valor del potenciometro recibido:";
+uint8_t msg4[100] = "Selección no valida";
 uint8_t slSPI[10];  // Buffer para enviar datos por SPI
-uint8_t valores;
+uint8_t Valor_pot[3]; //Buffer para recibir valor del poteciometro
 
-uint8_t ledNumero;
-uint8_t tiempo;
+
 
 /* USER CODE END PV */
 
@@ -101,6 +106,7 @@ int main(void)
 
 		 	      // Recibir comando del usuario
 		 	      HAL_UART_Receive(&huart2, txBuffer, sizeof(txBuffer), 5000);
+		 	      HAL_UART_Transmit(&huart2, (uint8_t*)"\n", 1, 1000);  // Enviar newline
 
 		// Si el usuario selecciona la opción 1 (controlar dispositivo SPI)
 		 if (txBuffer[0] == '1')
@@ -112,12 +118,23 @@ int main(void)
 
 	          // Enviar los datos por SPI
 	          HAL_GPIO_WritePin(ESP32_CS_GPIO_Port, ESP32_CS_Pin, GPIO_PIN_RESET);  // Seleccionar el esclavo
-	          HAL_SPI_Transmit(&hspi1, txBuffer2, sizeof(txBuffer2), HAL_MAX_DELAY);  // Transmitir los datos
+	          HAL_SPI_Transmit(&hspi1, txBuffer2, sizeof(txBuffer2), 5000);  // Transmitir los datos
 	          HAL_GPIO_WritePin(ESP32_CS_GPIO_Port, ESP32_CS_Pin, GPIO_PIN_SET);  // Deseleccionar el esclavo
 	          HAL_Delay(50);  // Pequeña espera antes de volver al ciclo
-
+	          txBuffer[0] = '0';
 	      }
-  }
+		 if (txBuffer[0] == '2'){
+
+			 HAL_I2C_Master_Receive(&hi2c1, (deviceAdress <<1) | 0x01, (uint8_t*)Valor_pot, 3, 5000);  // Recibir datos
+
+			 // Mostrar el valor recibido en la terminal UART
+			     HAL_UART_Transmit(&huart2, msg3, sizeof(msg3), 5000);
+			     HAL_UART_Transmit(&huart2, Valor_pot, sizeof(Valor_pot), 5000);
+			     HAL_UART_Transmit(&huart2, (uint8_t*)"\n", 1, 1000);  // Enviar newline
+			     HAL_Delay(50);  // Pequeña espera antes de volver al ciclo
+			     txBuffer[0] = '0';
+			 }
+		 }
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
